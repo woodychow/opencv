@@ -4471,6 +4471,7 @@ public:
                                 my0 = _mm256_packs_epi32(my0, my1);
                                 my0 = _mm256_slli_epi16(my0, INTER_BITS);
                                 mx0 = _mm256_or_si256(mx0, my0);
+                                mx0 = _mm256_permute4x64_epi64(mx0, (3 << 6) + (1 << 4) + (2 << 2) + 0);
                                 _mm256_storeu_si256((__m256i*)(A + x1), mx0);
                                 ix0 = _mm256_srai_epi32(ix0, INTER_BITS);
                                 ix1 = _mm256_srai_epi32(ix1, INTER_BITS);
