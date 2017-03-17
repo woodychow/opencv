@@ -3653,13 +3653,75 @@ struct RemapVec_8u
         const uchar *S0 = _src.ptr(), *S1 = _src.ptr(1);
         const short* wtab = cn == 1 ? (const short*)_wtab : &BilinearTab_iC4[0][0][0];
         uchar* D = (uchar*)_dst;
-        __m128i delta = _mm_set1_epi32(INTER_REMAP_COEF_SCALE/2);
-        __m128i xy2ofs = _mm_set1_epi32(cn + (sstep << 16));
-        __m128i z = _mm_setzero_si128();
+        const __m128i delta = _mm_set1_epi32(INTER_REMAP_COEF_SCALE/2);
+        const __m128i xy2ofs = _mm_set1_epi32(cn + (sstep << 16));
+        const __m128i z = _mm_setzero_si128();
         int CV_DECL_ALIGNED(16) iofs0[4], iofs1[4];
 
         if( cn == 1 )
         {
+#if CV_AVX2
+            for( ; x <= width - 8; x += 8 )
+            {
+                __m256i xy0 = _mm256_loadu_si256( (const __m256i*)(XY + x*2));
+                __m256i xy1 = _mm256_loadu_si256( (const __m256i*)(XY + x*2 + 16));
+                __m256i v0, v1, v2, v3, a0, a1, b0, b1;
+                //uint32_t i0, i1;
+
+                xy0 = _mm256_madd_epi16( xy0, xy2ofs );
+                xy1 = _mm256_madd_epi16( xy1, xy2ofs );
+                
+                _mm256_i32gather_epi32(S0, xy0, 1);
+
+                _mm256_i32gather_epi32(S0, xy1, 1);
+
+                _mm_store_si128( (__m128i*)iofs0, xy0 );
+                _mm_store_si128( (__m128i*)iofs1, xy1 );
+
+                i0 = *(ushort*)(S0 + iofs0[0]) + (*(ushort*)(S0 + iofs0[1]) << 16);
+                i1 = *(ushort*)(S0 + iofs0[2]) + (*(ushort*)(S0 + iofs0[3]) << 16);
+                v0 = _mm_unpacklo_epi32(_mm_cvtsi32_si128(i0), _mm_cvtsi32_si128(i1));
+                i0 = *(ushort*)(S1 + iofs0[0]) + (*(ushort*)(S1 + iofs0[1]) << 16);
+                i1 = *(ushort*)(S1 + iofs0[2]) + (*(ushort*)(S1 + iofs0[3]) << 16);
+                v1 = _mm_unpacklo_epi32(_mm_cvtsi32_si128(i0), _mm_cvtsi32_si128(i1));
+                v0 = _mm_unpacklo_epi8(v0, z);
+                v1 = _mm_unpacklo_epi8(v1, z);
+
+                a0 = _mm_unpacklo_epi32(_mm_loadl_epi64((__m128i*)(wtab+FXY[x]*4)),
+                                        _mm_loadl_epi64((__m128i*)(wtab+FXY[x+1]*4)));
+                a1 = _mm_unpacklo_epi32(_mm_loadl_epi64((__m128i*)(wtab+FXY[x+2]*4)),
+                                        _mm_loadl_epi64((__m128i*)(wtab+FXY[x+3]*4)));
+                b0 = _mm_unpacklo_epi64(a0, a1);
+                b1 = _mm_unpackhi_epi64(a0, a1);
+                v0 = _mm_madd_epi16(v0, b0);
+                v1 = _mm_madd_epi16(v1, b1);
+                v0 = _mm_add_epi32(_mm_add_epi32(v0, v1), delta);
+
+                i0 = *(ushort*)(S0 + iofs1[0]) + (*(ushort*)(S0 + iofs1[1]) << 16);
+                i1 = *(ushort*)(S0 + iofs1[2]) + (*(ushort*)(S0 + iofs1[3]) << 16);
+                v2 = _mm_unpacklo_epi32(_mm_cvtsi32_si128(i0), _mm_cvtsi32_si128(i1));
+                i0 = *(ushort*)(S1 + iofs1[0]) + (*(ushort*)(S1 + iofs1[1]) << 16);
+                i1 = *(ushort*)(S1 + iofs1[2]) + (*(ushort*)(S1 + iofs1[3]) << 16);
+                v3 = _mm_unpacklo_epi32(_mm_cvtsi32_si128(i0), _mm_cvtsi32_si128(i1));
+                v2 = _mm_unpacklo_epi8(v2, z);
+                v3 = _mm_unpacklo_epi8(v3, z);
+
+                a0 = _mm_unpacklo_epi32(_mm_loadl_epi64((__m128i*)(wtab+FXY[x+4]*4)),
+                                        _mm_loadl_epi64((__m128i*)(wtab+FXY[x+5]*4)));
+                a1 = _mm_unpacklo_epi32(_mm_loadl_epi64((__m128i*)(wtab+FXY[x+6]*4)),
+                                        _mm_loadl_epi64((__m128i*)(wtab+FXY[x+7]*4)));
+                b0 = _mm_unpacklo_epi64(a0, a1);
+                b1 = _mm_unpackhi_epi64(a0, a1);
+                v2 = _mm_madd_epi16(v2, b0);
+                v3 = _mm_madd_epi16(v3, b1);
+                v2 = _mm_add_epi32(_mm_add_epi32(v2, v3), delta);
+
+                v0 = _mm_srai_epi32(v0, INTER_REMAP_COEF_BITS);
+                v2 = _mm_srai_epi32(v2, INTER_REMAP_COEF_BITS);
+                v0 = _mm_packus_epi16(_mm_packs_epi32(v0, v2), z);
+                _mm_storel_epi64( (__m128i*)(D + x), v0 );
+            }
+#endif
             for( ; x <= width - 8; x += 8 )
             {
                 __m128i xy0 = _mm_loadu_si128( (const __m128i*)(XY + x*2));
