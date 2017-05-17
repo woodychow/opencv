@@ -6329,7 +6329,7 @@ public:
                                 // 0-3
                                 __m128i v_X0, v_Y0;
                                 {
-                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v_W0);
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
@@ -6345,7 +6345,7 @@ public:
                                 // 4-8
                                 __m128i v_X1, v_Y1;
                                 {
-                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v_W0);
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
@@ -6361,7 +6361,7 @@ public:
                                 // 8-11
                                 __m128i v_X2, v_Y2;
                                 {
-                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v_W0);
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
@@ -6377,7 +6377,7 @@ public:
                                 // 12-15
                                 __m128i v_X3, v_Y3;
                                 {
-                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v_W0);
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
