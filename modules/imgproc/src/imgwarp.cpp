@@ -6135,16 +6135,16 @@ public:
 
         #if CV_AVX2
         bool haveAVX2 = checkHardwareSupport(CV_AVX2);
-        __m256d v_M0 = _mm256_set1_pd(M[0]);
-        __m256d v_M3 = _mm256_set1_pd(M[3]);
-        __m256d v_M6 = _mm256_set1_pd(M[6]);
-        __m256d v_intmax = _mm256_set1_pd((double)INT_MAX);
-        __m256d v_intmin = _mm256_set1_pd((double)INT_MIN);
-        __m256d v_2 = _mm256_set1_pd(2),
-                v_zero = _mm256_setzero_pd(),
-                v_1 = _mm256_set1_pd(1),
-                v_its = _mm256_set1_pd(INTER_TAB_SIZE);
-        __m256i v_itsi1 = _mm256_set1_epi32(INTER_TAB_SIZE - 1);
+        __m256d v256_M0 = _mm256_set1_pd(M[0]);
+        __m256d v256_M3 = _mm256_set1_pd(M[3]);
+        __m256d v256_M6 = _mm256_set1_pd(M[6]);
+        __m256d v256_intmax = _mm256_set1_pd((double)INT_MAX);
+        __m256d v256_intmin = _mm256_set1_pd((double)INT_MIN);
+        __m256d v256_4 = _mm256_set1_pd(4),
+                v256_zero = _mm256_setzero_pd(),
+                v256_1 = _mm256_set1_pd(1),
+                v256_its = _mm256_set1_pd(INTER_TAB_SIZE);
+        __m256i v256_itsi1 = _mm256_set1_epi32(INTER_TAB_SIZE - 1);
         #endif
         #if CV_SSE4_1
         bool haveSSE4_1 = checkHardwareSupport(CV_CPU_SSE4_1);
@@ -6315,6 +6315,110 @@ public:
                         short* alpha = A + y1*bw;
                         x1 = 0;
 
+
+                        #if CV_AVX2
+                        if (haveAVX2)
+                        {
+                            __m256d v256_X0d = _mm256_set1_pd(X0);
+                            __m256d v256_Y0d = _mm256_set1_pd(Y0);
+                            __m256d v256_W0 = _mm256_set1_pd(W0);
+                            __m256d v256_x1 = _mm256_set_pd(3, 2, 1, 0);
+
+                            for( ; x1 <= bw - 16; x1 += 16 )
+                            {
+                                // 0-3
+                                __m128i v_X0, v_Y0;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
+                                                              _mm256_div_pd(v256_its, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+
+                                    v_X0 = _mm256_cvtpd_epi32(v256_fX0);
+                                    v_Y0 = _mm256_cvtpd_epi32(v256_fY0);
+                                }
+
+                                // 4-8
+                                __m128i v_X1, v_Y1;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
+                                                              _mm256_div_pd(v256_its, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+
+                                    v_X1 = _mm256_cvtpd_epi32(v256_fX0);
+                                    v_Y1 = _mm256_cvtpd_epi32(v256_fY0);
+                                }
+
+                                // 8-11
+                                __m128i v_X2, v_Y2;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
+                                                              _mm256_div_pd(v256_its, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+
+                                    v_X2 = _mm256_cvtpd_epi32(v256_fX0);
+                                    v_Y2 = _mm256_cvtpd_epi32(v256_fY0);
+                                }
+
+                                // 12-15
+                                __m128i v_X3, v_Y3;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v_M6, v256_x1), v_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
+                                                              _mm256_div_pd(v256_its, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+
+                                    v_X3 = _mm256_cvtpd_epi32(v256_fX0);
+                                    v_Y3 = _mm256_cvtpd_epi32(v256_fY0);
+                                }
+
+                                _mm256_zeroupper();
+
+                                // store alpha
+                                __m128i v_alpha0 = _mm_add_epi32(_mm_slli_epi32(_mm_and_si128(v_Y0, v_itsi1), INTER_BITS),
+                                                                 _mm_and_si128(v_X0, v_itsi1));
+                                __m128i v_alpha1 = _mm_add_epi32(_mm_slli_epi32(_mm_and_si128(v_Y1, v_itsi1), INTER_BITS),
+                                                                 _mm_and_si128(v_X1, v_itsi1));
+                                _mm_storeu_si128((__m128i *)(alpha + x1), _mm_packs_epi32(v_alpha0, v_alpha1));
+
+                                v_alpha0 = _mm_add_epi32(_mm_slli_epi32(_mm_and_si128(v_Y2, v_itsi1), INTER_BITS),
+                                                         _mm_and_si128(v_X2, v_itsi1));
+                                v_alpha1 = _mm_add_epi32(_mm_slli_epi32(_mm_and_si128(v_Y3, v_itsi1), INTER_BITS),
+                                                         _mm_and_si128(v_X3, v_itsi1));
+                                _mm_storeu_si128((__m128i *)(alpha + x1 + 8), _mm_packs_epi32(v_alpha0, v_alpha1));
+
+                                // convert to 16s
+                                v_X0 = _mm_packs_epi32(_mm_srai_epi32(v_X0, INTER_BITS), _mm_srai_epi32(v_X1, INTER_BITS));
+                                v_X1 = _mm_packs_epi32(_mm_srai_epi32(v_X2, INTER_BITS), _mm_srai_epi32(v_X3, INTER_BITS));
+                                v_Y0 = _mm_packs_epi32(_mm_srai_epi32(v_Y0, INTER_BITS), _mm_srai_epi32(v_Y1, INTER_BITS));
+                                v_Y1 = _mm_packs_epi32(_mm_srai_epi32(v_Y2, INTER_BITS), _mm_srai_epi32(v_Y3, INTER_BITS));
+
+                                _mm_interleave_epi16(v_X0, v_X1, v_Y0, v_Y1);
+
+                                _mm_storeu_si128((__m128i *)(xy + x1 * 2), v_X0);
+                                _mm_storeu_si128((__m128i *)(xy + x1 * 2 + 8), v_X1);
+                                _mm_storeu_si128((__m128i *)(xy + x1 * 2 + 16), v_Y0);
+                                _mm_storeu_si128((__m128i *)(xy + x1 * 2 + 24), v_Y1);
+                            }
+                        }
                         #if CV_SSE4_1
                         if (haveSSE4_1)
                         {
