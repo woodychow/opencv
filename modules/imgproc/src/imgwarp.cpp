@@ -6329,27 +6329,47 @@ public:
                                 // 0-7
                                 __m256i v256_X0, v256_Y0;
                                 {
+#if CV_FMA3
+                                    __m256d v256_W = _mm256_fmadd_pd(v256_M6, v256_x1, v256_W0);
+#else
                                     __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+#endif
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
+#if CV_FMA3
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M0, v256_x1, v256_X0d), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M3, v256_x1, v256_Y0d), v256_W)));
+#else
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
                                     __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+#endif
                                     v256_x1 = _mm256_add_pd(v256_x1, v256_4);
-
                                     v256_X0 = _mm256_inserti128_si256(v256_X0, _mm256_cvtpd_epi32(v256_fX0), 0);
                                     v256_Y0 = _mm256_inserti128_si256(v256_Y0, _mm256_cvtpd_epi32(v256_fY0), 0);
 
+#if CV_FMA3
+                                    v256_W = _mm256_fmadd_pd(v256_M6, v256_x1, v256_W0);
+#else
                                     v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+#endif
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
+#if CV_FMA3
+                                    v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M0, v256_x1, v256_X0d), v256_W)));
+                                    v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M3, v256_x1, v256_Y0d), v256_W)));
+#else
                                     v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
                                     v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+#endif
                                     v256_x1 = _mm256_add_pd(v256_x1, v256_4);
-
                                     v256_X0 = _mm256_inserti128_si256(v256_X0, _mm256_cvtpd_epi32(v256_fX0), 1);
                                     v256_Y0 = _mm256_inserti128_si256(v256_Y0, _mm256_cvtpd_epi32(v256_fY0), 1);
                                 }
@@ -6357,27 +6377,46 @@ public:
                                 // 8-15
                                 __m256i v256_X1, v256_Y1;
                                 {
+#if CV_FMA3
+                                    __m256d v256_W = _mm256_fmadd_pd(v256_M6, v256_x1, v256_W0);
+#else
                                     __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+#endif
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
+#if CV_FMA3
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M0, v256_x1, v256_X0d), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M3, v256_x1, v256_Y0d), v256_W)));
+#else
                                     __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
                                     __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+#endif
                                     v256_x1 = _mm256_add_pd(v256_x1, v256_4);
-
                                     v256_X1 = _mm256_inserti128_si256(v256_X1, _mm256_cvtpd_epi32(v256_fX0), 0);
                                     v256_Y1 = _mm256_inserti128_si256(v256_Y1, _mm256_cvtpd_epi32(v256_fY0), 0);
-
+#if CV_FMA3
+                                    v256_W = _mm256_fmadd_pd(v256_M6, v256_x1, v256_W0);
+#else
                                     v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+#endif
                                     v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ),
                                                               _mm256_div_pd(v256_its, v256_W));
+#if CV_FMA3
+                                    v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M0, v256_x1, v256_X0d), v256_W)));
+                                    v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_fmadd_pd(v256_M3, v256_x1, v256_Y0d), v256_W)));
+#else
                                     v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
                                     v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
                                         _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+#endif
                                     v256_x1 = _mm256_add_pd(v256_x1, v256_4);
-
                                     v256_X1 = _mm256_inserti128_si256(v256_X1, _mm256_cvtpd_epi32(v256_fX0), 1);
                                     v256_Y1 = _mm256_inserti128_si256(v256_Y1, _mm256_cvtpd_epi32(v256_fY0), 1);
                                 }
