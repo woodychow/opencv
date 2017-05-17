@@ -6184,7 +6184,71 @@ public:
                         #if CV_AVX2
                         if (haveAVX2)
                         {
+                            const __m256d v256_X0d = _mm256_set1_pd(X0);
+                            const __m256d v256_Y0d = _mm256_set1_pd(Y0);
+                            const __m256d v256_W0 = _mm256_set1_pd(W0);
+                            __m256d v256_x1 = _mm256_set_pd(3, 2, 1, 0);
 
+                            for( ; x1 <= bw - 16; x1 += 16 )
+                            {
+                                // 0-7
+                                __m256i v256_X0, v256_Y0;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ), _mm256_div_pd(v256_1, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+                                    v256_X0 = _mm256_inserti128_si256(v256_X0, _mm256_cvtpd_epi32(v256_fX0), 0);
+                                    v256_Y0 = _mm256_inserti128_si256(v256_Y0, _mm256_cvtpd_epi32(v256_fY0), 0);
+
+                                    v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ), _mm256_div_pd(v256_1, v256_W));
+                                    v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+                                    v256_X0 = _mm256_inserti128_si256(v256_X0, _mm256_cvtpd_epi32(v256_fX0), 1);
+                                    v256_Y0 = _mm256_inserti128_si256(v256_Y0, _mm256_cvtpd_epi32(v256_fY0), 1);
+                                }
+
+                                // 8-15
+                                __m256i v256_X1, v256_Y1;
+                                {
+                                    __m256d v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ), _mm256_div_pd(v256_1, v256_W));
+                                    __m256d v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    __m256d v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+                                    v256_X1 = _mm256_inserti128_si256(v256_X1, _mm256_cvtpd_epi32(v256_fX0), 0);
+                                    v256_Y1 = _mm256_inserti128_si256(v256_Y1, _mm256_cvtpd_epi32(v256_fY0), 0);
+
+                                    v256_W = _mm256_add_pd(_mm256_mul_pd(v256_M6, v256_x1), v256_W0);
+                                    v256_W = _mm256_andnot_pd(_mm256_cmp_pd(v256_W, v256_zero, _CMP_EQ_OQ), _mm256_div_pd(v256_1, v256_W));
+                                    v256_fX0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_X0d, _mm256_mul_pd(v256_M0, v256_x1)), v256_W)));
+                                    v256_fY0 = _mm256_max_pd(v256_intmin, _mm256_min_pd(v256_intmax,
+                                        _mm256_mul_pd(_mm256_add_pd(v256_Y0d, _mm256_mul_pd(v256_M3, v256_x1)), v256_W)));
+
+                                    v256_x1 = _mm256_add_pd(v256_x1, v256_4);
+                                    v256_X1 = _mm256_inserti128_si256(v256_X1, _mm256_cvtpd_epi32(v256_fX0), 1);
+                                    v256_Y1 = _mm256_inserti128_si256(v256_Y1, _mm256_cvtpd_epi32(v256_fY0), 1);
+                                }
+
+                                v256_X0 = _mm256_packs_epi32(v256_X0, v256_X1);
+                                v256_Y0 = _mm256_packs_epi32(v256_Y0, v256_Y1);
+
+                                _mm256_storeu_si256((__m256i*)(xy + x1*2), _mm256_unpacklo_epi16(v256_X0, v256_Y0));
+                                _mm256_storeu_si256((__m256i*)(xy + x1*2 + 16), _mm256_unpackhi_epi16(v256_X0, v256_Y0));
+                            }
                         }
                         #endif
                         #if CV_SSE4_1
@@ -6315,13 +6379,12 @@ public:
                         short* alpha = A + y1*bw;
                         x1 = 0;
 
-
                         #if CV_AVX2
                         if (haveAVX2)
                         {
-                            __m256d v256_X0d = _mm256_set1_pd(X0);
-                            __m256d v256_Y0d = _mm256_set1_pd(Y0);
-                            __m256d v256_W0 = _mm256_set1_pd(W0);
+                            const __m256d v256_X0d = _mm256_set1_pd(X0);
+                            const __m256d v256_Y0d = _mm256_set1_pd(Y0);
+                            const __m256d v256_W0 = _mm256_set1_pd(W0);
                             __m256d v256_x1 = _mm256_set_pd(3, 2, 1, 0);
 
                             for( ; x1 <= bw - 16; x1 += 16 )
