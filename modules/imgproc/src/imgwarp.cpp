@@ -6419,6 +6419,7 @@ public:
                                 _mm_storeu_si128((__m128i *)(xy + x1 * 2 + 24), v_Y1);
                             }
                         }
+                        #endif
                         #if CV_SSE4_1
                         if (haveSSE4_1)
                         {
