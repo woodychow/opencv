@@ -6133,6 +6133,19 @@ public:
         int bw0 = std::min(BLOCK_SZ*BLOCK_SZ/bh0, width);
         bh0 = std::min(BLOCK_SZ*BLOCK_SZ/bw0, height);
 
+        #if CV_AVX2
+        bool haveAVX2 = checkHardwareSupport(CV_AVX2);
+        __m256d v_M0 = _mm256_set1_pd(M[0]);
+        __m256d v_M3 = _mm256_set1_pd(M[3]);
+        __m256d v_M6 = _mm256_set1_pd(M[6]);
+        __m256d v_intmax = _mm256_set1_pd((double)INT_MAX);
+        __m256d v_intmin = _mm256_set1_pd((double)INT_MIN);
+        __m256d v_2 = _mm256_set1_pd(2),
+                v_zero = _mm256_setzero_pd(),
+                v_1 = _mm256_set1_pd(1),
+                v_its = _mm256_set1_pd(INTER_TAB_SIZE);
+        __m256i v_itsi1 = _mm256_set1_epi32(INTER_TAB_SIZE - 1);
+        #endif
         #if CV_SSE4_1
         bool haveSSE4_1 = checkHardwareSupport(CV_CPU_SSE4_1);
         __m128d v_M0 = _mm_set1_pd(M[0]);
@@ -6168,6 +6181,12 @@ public:
                     {
                         x1 = 0;
 
+                        #if CV_AVX2
+                        if (haveAVX2)
+                        {
+                            
+                        }
+                        #endif
                         #if CV_SSE4_1
                         if (haveSSE4_1)
                         {
