@@ -6390,7 +6390,7 @@ public:
                                     v_Y3 = _mm256_cvtpd_epi32(v256_fY0);
                                 }
 
-                                _mm256_zeroupper();
+                                // _mm256_zeroupper();
 
                                 // store alpha
                                 __m128i v_alpha0 = _mm_add_epi32(_mm_slli_epi32(_mm_and_si128(v_Y0, v_itsi1), INTER_BITS),
