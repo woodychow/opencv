@@ -93,7 +93,33 @@ public:
         uchar* maskptr = mask.ptr<uchar>();
         float t = (float)(thresh*thresh);
         int i, n = (int)err.total(), nz = 0;
-        for( i = 0; i < n; i++ )
+        i = 0;
+#if __AVX2__
+        const __m256 __t = _mm256_set1_ps(t);
+        const __m256i __1 = _mm256_set1_epi32(1);
+        __m256i __nz8 = _mm256_setzero_si256();
+        for( ; i <= n - 32; i += 32 )
+        {
+            __m256i __fa = _mm256_and_si256(_mm256_castps_si256(_mm256_cmp_ps(_mm256_loadu_ps(&errptr[i]), __t, _CMP_LE_OQ)), __1); // f0-7 (int32)
+            __nz8 = _mm256_add_epi32(__nz8, __fa);
+            __m256i __fb = _mm256_and_si256(_mm256_castps_si256(_mm256_cmp_ps(_mm256_loadu_ps(&errptr[i + 16]), __t, _CMP_LE_OQ)), __1); // f16-23 (int32)
+            __nz8 = _mm256_add_epi32(__nz8, __fb);
+            // f0-3, f16-19, f4-7, f20-23 > f0-7, f16-23 (int16)
+            __m256i first = _mm256_permute4x64_epi64(_mm256_packs_epi32(__fa, __fb), 3 << 6 | 1 << 4 | 2 << 2 | 0); 
+            __m256i __fc = _mm256_and_si256(_mm256_castps_si256(_mm256_cmp_ps(_mm256_loadu_ps(&errptr[i + 8]), __t, _CMP_LE_OQ)), __1); // f8-15 (int32)
+            __nz8 = _mm256_add_epi32(__nz8, __fc);
+            __m256i __fd = _mm256_and_si256(_mm256_castps_si256(_mm256_cmp_ps(_mm256_loadu_ps(&errptr[i + 24]), __t, _CMP_LE_OQ)), __1); // f24-31 (int32)
+            __nz8 = _mm256_add_epi32(__nz8, __fd);
+            // f8-11, f24-27, f12-15, f28-31 -> f8-15, f24-31 (int16)
+            __m256i second = _mm256_permute4x64_epi64(_mm256_packs_epi32(__fc, __fd), 3 << 6 | 1 << 4 | 2 << 2 | 0); 
+            // f0-f31 (int8)
+            _mm256_storeu_si256((__m256i*) &maskptr[i], _mm256_packs_epi16(first, second));
+        }
+        int CV_DECL_ALIGNED(32) buf[8];
+        _mm256_store_si256((__m256i*) buf, __nz8);
+        nz += buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] + buf[6] + buf[7];
+#endif
+        for( ; i < n; i++ )
         {
             int f = errptr[i] <= t;
             maskptr[i] = (uchar)f;

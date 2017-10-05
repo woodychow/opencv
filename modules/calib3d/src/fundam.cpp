@@ -166,7 +166,36 @@ public:
         _err.create(count, 1, CV_32F);
         float* err = _err.getMat().ptr<float>();
 
-        for( i = 0; i < count; i++ )
+        i = 0;
+#if __AVX2__
+        const __m256 __Hf2 = _mm256_set1_ps(Hf[2]);
+        const __m256 __Hf5 = _mm256_set1_ps(Hf[5]);
+        const __m256 __Hf01 = _mm256_set_ps(Hf[1], Hf[0], Hf[1], Hf[0], Hf[1], Hf[0], Hf[1], Hf[0]);
+        const __m256 __Hf34 = _mm256_set_ps(Hf[4], Hf[3], Hf[4], Hf[3], Hf[4], Hf[3], Hf[4], Hf[3]);
+        const __m256 __Hf67 = _mm256_set_ps(Hf[7], Hf[6], Hf[7], Hf[6], Hf[7], Hf[6], Hf[7], Hf[6]);
+        const __m256 __1 = _mm256_set1_ps(1.0f);
+        static const int shuffle_mask = 3 << 6 | 1 << 4 | 2 << 2 | 0;
+        for( ; i <= count - 8; i += 8 )
+        {
+            __m256 __Ma = _mm256_loadu_ps(reinterpret_cast<const float*>(&M[i]));
+            __m256 __Mb = _mm256_loadu_ps(reinterpret_cast<const float*>(&M[i+4]));
+
+            __m256 __ma = _mm256_loadu_ps(reinterpret_cast<const float*>(&m[i]));
+            __m256 __mb = _mm256_loadu_ps(reinterpret_cast<const float*>(&m[i+4]));
+
+            // 0, 1, 4, 5, 2, 3, 6, 7 after hadd
+            __m256 __ww = _mm256_div_ps(__1, _mm256_add_ps(_mm256_hadd_ps(_mm256_mul_ps(__Ma, __Hf67), _mm256_mul_ps(__Mb, __Hf67)), __1));
+            __m256 __dx = _mm256_mul_ps(_mm256_add_ps(_mm256_hadd_ps(_mm256_mul_ps(__Ma, __Hf01), _mm256_mul_ps(__Mb, __Hf01)), __Hf2), __ww);
+            __dx = _mm256_sub_ps(__dx, _mm256_shuffle_ps(__ma, __mb, 2 << 6 | 0 << 4 | 2 << 2 | 0)); // x of 01452367
+            __m256 __dy = _mm256_mul_ps(_mm256_add_ps(_mm256_hadd_ps(_mm256_mul_ps(__Ma, __Hf34), _mm256_mul_ps(__Mb, __Hf34)), __Hf5), __ww);
+            __dy = _mm256_sub_ps(__dy, _mm256_shuffle_ps(__ma, __mb, 3 << 6 | 1 << 4 | 3 << 2 | 1)); // y of 01452367
+            __m256 __err = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(
+                _mm256_add_ps(_mm256_mul_ps(__dx, __dx), _mm256_mul_ps(__dy, __dy))), shuffle_mask));
+            _mm256_storeu_ps(&err[i], __err);
+        }
+#endif
+
+        for( ; i < count; i++ )
         {
             float ww = 1.f/(Hf[6]*M[i].x + Hf[7]*M[i].y + 1.f);
             float dx = (Hf[0]*M[i].x + Hf[1]*M[i].y + Hf[2])*ww - m[i].x;
@@ -322,6 +351,9 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
 {
     CV_INSTRUMENT_REGION()
 
+    double t, tf = getTickFrequency();
+    t = (double)getTickCount();
+
     const double defaultRANSACReprojThreshold = 3;
     bool result = false;
 
@@ -348,6 +380,9 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
 
     CV_Assert( src.checkVector(2) == dst.checkVector(2) );
 
+    t = (double)getTickCount() - t;
+    printf("1: %g\n", t*1000./tf);
+
     if( ransacReprojThreshold <= 0 )
         ransacReprojThreshold = defaultRANSACReprojThreshold;
 
@@ -367,6 +402,9 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
     else
         CV_Error(Error::StsBadArg, "Unknown estimation method");
 
+    t = (double)getTickCount() - t;
+    printf("2: %g\n", t*1000./tf);
+
     if( result && npoints > 4 && method != RHO)
     {
         compressElems( src.ptr<Point2f>(), tempMask.ptr<uchar>(), 1, npoints );
@@ -383,6 +421,9 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
             createLMSolver(makePtr<HomographyRefineCallback>(src, dst), 10)->run(H8);
         }
     }
+
+    t = (double)getTickCount() - t;
+    printf("3: %g\n", t*1000./tf);
 
     if( result )
     {
