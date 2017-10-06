@@ -234,7 +234,88 @@ public:
         double* errptr = err.ptr<double>();
         double* Jptr = J.data ? J.ptr<double>() : 0;
 
-        for( i = 0; i < count; i++ )
+        i = 0;
+#if 0
+        const __m256d __h2 = _mm256_set1_pd(h[2]);
+        const __m256d __h5 = _mm256_set1_pd(h[5]);
+        const __m256d __h01 = _mm256_set_pd(h[1], h[0], h[1], h[0]);
+        const __m256d __h34 = _mm256_set_pd(h[4], h[3], h[4], h[3]);
+        const __m256d __h67 = _mm256_set_pd(h[7], h[6], h[7], h[6]);
+        const __m256d __1 = _mm256_set1_pd(1.0);
+        const __m256d __m0 = _mm256_set1_pd(-0.0);
+        static const __m256d __DBL_EPSILON = _mm256_set1_pd(DBL_EPSILON);
+        double buf[4];
+        for( ; i <= count - 4; i += 4 )
+        {
+            __m256 tmp = _mm256_loadu_ps(reinterpret_cast<const float*>(&M[i]));
+            __m256d __Ma = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp, 0));
+            __m256d __Mb = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp, 1));
+            
+            // _mm256_storeu_pd(buf, __Ma);
+            // printf("avx2 Mx My %d/%d: %.17g, %.17g\n", i, count, buf[0], buf[1]);
+            tmp = _mm256_loadu_ps(reinterpret_cast<const float*>(&m[i]));
+            __m256d __ma = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp, 0));
+            __m256d __mb = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp, 1));
+            // _mm256_storeu_pd(buf, __ma);
+            // printf("mxy: %.17g, %.17g\n", buf[0], buf[1]);
+
+            // 0, 2, 1, 3
+            __m256d __ww = _mm256_add_pd(_mm256_hadd_pd(_mm256_mul_pd(__Ma, __h67), _mm256_mul_pd(__Mb, __h67)), __1);
+            // _mm256_andnot_pd(__m0, __w) = abs
+            __ww = _mm256_and_pd(_mm256_cmp_pd(_mm256_andnot_pd(__m0, __ww), __DBL_EPSILON, _CMP_GT_OS), _mm256_div_pd(__1, __ww));
+            
+            // _mm256_storeu_pd(buf, __ww);
+            // printf("_ww: %.17g\n", buf[0]);
+
+            // __m256d __xi = _mm256_mul_pd(_mm256_add_pd(_mm256_hadd_pd(_mm256_mul_pd(__Ma, __h01), _mm256_mul_pd(__Mb, __h01)), __h2), __ww);
+            __m256d __xi = _mm256_add_pd(_mm256_hadd_pd(_mm256_mul_pd(__h01, __Ma), _mm256_mul_pd(__h01, __Mb)), __h2);
+            
+            // _mm256_storeu_pd(buf, _mm256_mul_pd(__Ma, __h01));
+            // // printf("_mah: %.17g %.17g\n", buf[0], buf[1]);
+            // _mm256_storeu_pd(buf, _mm256_mul_pd(__Mb, __h01));
+            // // // printf("_mbh: %.17g %.17g\n", buf[0], buf[1]);
+            // _mm256_storeu_pd(buf, _mm256_hadd_pd(_mm256_mul_pd(__h01, __Ma), _mm256_mul_pd(__h01, __Mb)));
+            // printf("_hadd: %.17g %.17g %.17g %.17g %llx\n", buf[0], buf[1], buf[2], buf[3], reinterpret_cast<uint64_t*>(buf)[0]);
+            __xi = _mm256_mul_pd(__xi, __ww);
+            // _mm256_storeu_pd(buf, __xi);
+            // printf("_xi: %.17g\n", buf[0]);
+            __m256d __yi = _mm256_mul_pd(_mm256_add_pd(_mm256_hadd_pd(_mm256_mul_pd(__h34, __Ma), _mm256_mul_pd(__h34, __Mb)), __h5), __ww);
+
+            // _mm256_storeu_pd(buf, __xi);
+            // // printf("_xi: %.17g\n", buf[0]);
+            // _mm256_storeu_pd(buf, __yi);
+            // printf("_yi: %.17g\n", buf[0]);
+            // std::exit(-1);
+
+            _mm256_storeu_pd(&errptr[i*2], _mm256_sub_pd(_mm256_shuffle_pd(__xi, __yi, 0), __ma));
+            _mm256_storeu_pd(&errptr[i*2+4], _mm256_sub_pd(_mm256_shuffle_pd(__xi, __yi, 0xF), __mb));
+        
+            if (Jptr)
+            {
+                for (int x = i; x < i + 4; ++x) {
+                    double Mx = M[x].x, My = M[x].y;
+                    double ww = h[6]*Mx + h[7]*My + 1.;
+                    ww = fabs(ww) > DBL_EPSILON ? 1./ww : 0;
+                    double xi = (h[0]*Mx + h[1]*My + h[2])*ww;
+                    double yi = (h[3]*Mx + h[4]*My + h[5])*ww;
+
+                    Jptr[0] = Mx*ww; Jptr[1] = My*ww; Jptr[2] = ww;
+                    Jptr[3] = Jptr[4] = Jptr[5] = 0.;
+                    Jptr[6] = -Mx*ww*xi; Jptr[7] = -My*ww*xi;
+                    Jptr[8] = Jptr[9] = Jptr[10] = 0.;
+                    Jptr[11] = Mx*ww; Jptr[12] = My*ww; Jptr[13] = ww;
+                    Jptr[14] = -Mx*ww*yi; Jptr[15] = -My*ww*yi;
+
+                    Jptr += 16;
+                }
+            }
+        }
+#endif
+        // Jptr -= i * 16;
+
+        // Jptr = J.data ? J.ptr<double>() : 0;
+
+        for(; i < count; i++ )
         {
             double Mx = M[i].x, My = M[i].y;
             double ww = h[6]*Mx + h[7]*My + 1.;
@@ -252,6 +333,20 @@ public:
                 Jptr[8] = Jptr[9] = Jptr[10] = 0.;
                 Jptr[11] = Mx*ww; Jptr[12] = My*ww; Jptr[13] = ww;
                 Jptr[14] = -Mx*ww*yi; Jptr[15] = -My*ww*yi;
+
+                // if (Jptr[0] != Mx*ww || Jptr[1] != My*ww) {
+                //     // printf("%d: %f %f %f %f\n", i, Mx*ww, My*ww, Jptr[0], Jptr[1]);
+                //     std::exit(-1);
+                // }
+                // if (Jptr[14] != -Mx*ww*yi || Jptr[15] != -My*ww*yi) {
+                //     // printf("%d: %f %f %f %f\n", i, -Mx*ww*yi, -My*ww*yi, Jptr[14], Jptr[15]);
+                //     std::exit(-1);
+                // }
+
+                // // printf("%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",
+                //     Jptr[0], Jptr[1], Jptr[2], Jptr[3], Jptr[4], Jptr[5], Jptr[6], Jptr[7],
+                //     Jptr[8], Jptr[9], Jptr[10], Jptr[11], Jptr[12], Jptr[13], Jptr[14], Jptr[15]);
+                // std::exit(-1);
 
                 Jptr += 16;
             }
@@ -381,7 +476,7 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
     CV_Assert( src.checkVector(2) == dst.checkVector(2) );
 
     t = (double)getTickCount() - t;
-    printf("1: %g\n", t*1000./tf);
+    // printf("1: %g\n", t*1000./tf);
 
     if( ransacReprojThreshold <= 0 )
         ransacReprojThreshold = defaultRANSACReprojThreshold;
@@ -403,7 +498,7 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
         CV_Error(Error::StsBadArg, "Unknown estimation method");
 
     t = (double)getTickCount() - t;
-    printf("2: %g\n", t*1000./tf);
+    // printf("2: %g\n", t*1000./tf);
 
     if( result && npoints > 4 && method != RHO)
     {
@@ -423,7 +518,7 @@ cv::Mat cv::findHomography( InputArray _points1, InputArray _points2,
     }
 
     t = (double)getTickCount() - t;
-    printf("3: %g\n", t*1000./tf);
+    // printf("3: %g\n", t*1000./tf);
 
     if( result )
     {
