@@ -1406,36 +1406,41 @@ bool cv::eigen( InputArray _src, OutputArray _evals, OutputArray _evects )
     }
 
 #ifdef HAVE_EIGEN
-    const bool evNeeded = _evects.needed();
-    const int esOptions = evNeeded ? Eigen::ComputeEigenvectors : Eigen::EigenvaluesOnly;
+    const bool evecNeeded = _evects.needed();
+    const int esOptions = evecNeeded ? Eigen::ComputeEigenvectors : Eigen::EigenvaluesOnly;
+    _evals.create(n, 1, type);
+    cv::Mat evals = _evals.getMat();
     if (type == CV_64F) {
         Eigen::MatrixXd src_eig, zeros_eig;
         cv::cv2eigen(src, src_eig);
 
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
         es.compute(src_eig, esOptions);
-        cv::Mat evals = _evals.getMat();
-        cv::eigen2cv(es.eigenvalues(), evals);
-        if ( evNeeded )
-        {
-            cv::Mat evects = _evects.getMat();
-            cv::eigen2cv(es.eigenvectors(), v);
+        if (es.info() == Eigen::Success) {
+            cv::eigen2cv(es.eigenvalues().reverse().eval(), evals);
+            if ( evecNeeded )
+            {
+                cv::Mat evects = _evects.getMat();
+                cv::eigen2cv(es.eigenvectors().rowwise().reverse().transpose().eval(), v);
+            }
+            return true;
         }
-        return true;
     } else { // CV_32F
         Eigen::MatrixXf src_eig, zeros_eig;
         cv::cv2eigen(src, src_eig);
 
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
         es.compute(src_eig, esOptions);
-        cv::Mat evals = _evals.getMat();
-        cv::eigen2cv(es.eigenvalues(), evals);
-        if ( evNeeded )
-        {
-            cv::eigen2cv(es.eigenvectors(), v);
+        if (es.info() == Eigen::Success) {
+            cv::eigen2cv(es.eigenvalues().reverse().eval(), evals);
+            if ( evecNeeded )
+            {
+                cv::eigen2cv(es.eigenvectors().rowwise().reverse().transpose().eval(), v);
+            }
+            return true;
         }
-        return true;
     }
+    return false;
 #endif
 
     size_t elemSize = src.elemSize(), astep = alignSize(n*elemSize, 16);

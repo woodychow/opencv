@@ -257,7 +257,7 @@ bool Core_EigenTest::check_pairs_order(const cv::Mat& eigen_values)
                 if (!(eigen_values.at<float>(i, 0) > eigen_values.at<float>(i+1, 0)))
                 {
                 std::cout << endl; std::cout << "Checking order of eigen values vector " << eigen_values << "..." << endl;
-                std::cout << "Pair of indexes with non ascending of eigen values: (" << i << ", " << i+1 << ")." << endl;
+                std::cout << "Pair of indexes with non descending of eigen values: (" << i << ", " << i+1 << ")." << endl;
                 std::cout << endl;
                 CV_Error(CORE_EIGEN_ERROR_ORDER, MESSAGE_ERROR_ORDER);
                 return false;
@@ -272,7 +272,7 @@ bool Core_EigenTest::check_pairs_order(const cv::Mat& eigen_values)
                 if (!(eigen_values.at<double>(i, 0) > eigen_values.at<double>(i+1, 0)))
                 {
                     std::cout << endl; std::cout << "Checking order of eigen values vector " << eigen_values << "..." << endl;
-                    std::cout << "Pair of indexes with non ascending of eigen values: (" << i << ", " << i+1 << ")." << endl;
+                    std::cout << "Pair of indexes with non descending of eigen values: (" << i << ", " << i+1 << ")." << endl;
                     std::cout << endl;
                     CV_Error(CORE_EIGEN_ERROR_ORDER, "Eigen values are not sorted in ascending order.");
                     return false;
