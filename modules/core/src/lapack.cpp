@@ -43,6 +43,15 @@
 #include "precomp.hpp"
 #include <limits>
 
+#ifdef HAVE_EIGEN
+#  if defined __GNUC__ && defined __APPLE__
+#    pragma GCC diagnostic ignored "-Wshadow"
+#  endif
+#  include <Eigen/Core>
+#  include <Eigen/Eigenvalues>
+#  include "opencv2/core/eigen.hpp"
+#endif
+
 #if defined _M_IX86 && defined _MSC_VER && _MSC_VER < 1700
 #pragma float_control(precise, on)
 #endif
@@ -1395,6 +1404,39 @@ bool cv::eigen( InputArray _src, OutputArray _evals, OutputArray _evects )
         _evects.create(n, n, type);
         v = _evects.getMat();
     }
+
+#ifdef HAVE_EIGEN
+    const bool evNeeded = _evects.needed();
+    const int esOptions = evNeeded ? Eigen::ComputeEigenvectors : Eigen::EigenvaluesOnly;
+    if (type == CV_64F) {
+        Eigen::MatrixXd src_eig, zeros_eig;
+        cv::cv2eigen(src, src_eig);
+
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+        es.compute(src_eig, esOptions);
+        cv::Mat evals = _evals.getMat();
+        cv::eigen2cv(es.eigenvalues(), evals);
+        if ( evNeeded )
+        {
+            cv::Mat evects = _evects.getMat();
+            cv::eigen2cv(es.eigenvectors(), v);
+        }
+        return true;
+    } else { // CV_32F
+        Eigen::MatrixXf src_eig, zeros_eig;
+        cv::cv2eigen(src, src_eig);
+
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es;
+        es.compute(src_eig, esOptions);
+        cv::Mat evals = _evals.getMat();
+        cv::eigen2cv(es.eigenvalues(), evals);
+        if ( evNeeded )
+        {
+            cv::eigen2cv(es.eigenvectors(), v);
+        }
+        return true;
+    }
+#endif
 
     size_t elemSize = src.elemSize(), astep = alignSize(n*elemSize, 16);
     AutoBuffer<uchar> buf(n*astep + n*5*elemSize + 32);
