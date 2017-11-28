@@ -651,9 +651,7 @@ public:
             Matx22d dMatTilt;
             Vec2d dXdYd;
 
-            __m256d __x2 = _mm256_mul_pd(__x, __x);
-            __m256d __y2 = _mm256_mul_pd(__y, __y);
-            __m256d __r2 = _mm256_add_pd(__x2, __y2);
+            __m256d __r2 = _mm256_fmadd_pd(__x, __x, _mm256_mul_pd(__y, __y));
             __m256d __r4 = _mm256_mul_pd(__r2, __r2);
             __m256d __r6 = _mm256_mul_pd(__r4, __r2);
 
@@ -676,7 +674,6 @@ public:
                             _mm256_fmadd_pd(_mm256_set1_pd(k[10]), __r2,
                             _mm256_mul_pd(_mm256_set1_pd(k[11]), __r4)))));
 
-
             __m256d __vecTilt2 = _mm256_fmadd_pd(__matTilt_20, __xd, _mm256_fmadd_pd(__matTilt_21, __yd, __matTilt_22));
 
             __m256d __invProj = _mm256_blendv_pd(
@@ -688,7 +685,6 @@ public:
 
             __m256d __v = _mm256_fmadd_pd(__matTilt_10, __xd, _mm256_fmadd_pd(__matTilt_11, __yd, __matTilt_12));
             __v = _mm256_fmadd_pd(_mm256_mul_pd(_mm256_set1_pd(fy), __invProj), __v, _mm256_set1_pd(cy));
-
 
             _mm256_storeu_pd((double*) &m[i], _mm256_shuffle_pd(__u, __v, 0));
             _mm256_storeu_pd((double*) &m[i + 2], _mm256_shuffle_pd(__u, __v, 0xFFFFFFFF));
