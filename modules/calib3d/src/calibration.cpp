@@ -587,10 +587,6 @@ public:
         double* dpdf_p = dpdf == NULL ? NULL : dpdf + 2 * begin * dpdf_step;
         double* dpdk_p = dpdk == NULL ? NULL : dpdk + 2 * begin * dpdk_step;
 
-        const __m128i __x_index = _mm_set_epi32(9, 6, 3, 0);
-        const __m128i __y_index = _mm_set_epi32(10, 7, 4, 1);
-        const __m128i __z_index = _mm_set_epi32(11, 8, 5, 2);
-
         const __m256d __R0 = _mm256_set1_pd(R[0]);
         const __m256d __R1 = _mm256_set1_pd(R[1]);
         const __m256d __R2 = _mm256_set1_pd(R[2]);
@@ -620,10 +616,23 @@ public:
         int i;
         for( i = begin; i <= end - 4; i += 4)
         {
-            const CvPoint3D64f* MBase = M + i * 3;
-            __m256d __X = _mm256_i32gather_pd((double*) MBase, __x_index, 8);
-            __m256d __Y = _mm256_i32gather_pd((double*) MBase, __y_index, 8);
-            __m256d __Z = _mm256_i32gather_pd((double*) MBase, __z_index, 8);
+            const double* MBase = reinterpret_cast<const double*>(M + i * 3);
+            // https://software.intel.com/en-us/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx
+            __m256d __X0Y0Z0X1 = _mm256_loadu_pd(MBase);
+            __m256d __Y1Z1X2Y2 = _mm256_loadu_pd(MBase + 4);
+            __m256d __Z2X3Y3Z3 = _mm256_loadu_pd(MBase + 8);
+
+            __m256d __X = _mm256_blend_pd(__X0Y0Z0X1, __Y1Z1X2Y2, 1 << 2); // X0Y0X2X1
+            __X = _mm256_blend_pd(__X, __Z2X3Y3Z3, 1 << 1); // X0X3X2X1
+            __X = _mm256_permute4x64_pd(__X, 1 << 3 | 2 << 2 | 3 << 1);
+
+            __m256d __Y = _mm256_blend_pd(__Y1Z1X2Y2, __Z2X3Y3Z3, 1 << 2); // Y1Z1Y3Y2
+            __Y = _mm256_blend_pd(__Y, __X0Y0Z0X1, 1 << 1); // Y1Y0Y3Y2
+            __Y = _mm256_permute4x64_pd(__Y, 2 << 3 | 3 << 2 | 1);
+
+            __m256d __Z = _mm256_blend_pd(__Z2X3Y3Z3, __X0Y0Z0X1, 1 << 2); // Z2X3Z0Z3
+            __Z = _mm256_blend_pd(__Z, __Y1Z1X2Y2, 1 << 1); // Z2Z1Z0Z3
+            __Z = _mm256_permute4x64_pd(__Z, 1 << 1 | 2);
 
             __m256d __x = _mm256_fmadd_pd(__R0, __X, _mm256_fmadd_pd(__R1, __Y, _mm256_fmadd_pd(__R2, __Z, __t0)));
             __m256d __y = _mm256_fmadd_pd(__R3, __X, _mm256_fmadd_pd(__R4, __Y, _mm256_fmadd_pd(__R5, __Z, __t1)));
