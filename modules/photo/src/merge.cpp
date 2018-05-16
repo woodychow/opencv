@@ -173,6 +173,9 @@ public:
         std::vector<Mat> weights(images.size());
         Mat weight_sum = Mat::zeros(size, CV_32F);
 
+        double t, tf = getTickFrequency();
+        t = (double)getTickCount();
+
         for(size_t i = 0; i < images.size(); i++) {
             Mat img, gray, contrast, saturation, wellexp;
             std::vector<Mat> splitted(channels);
@@ -186,7 +189,13 @@ public:
             split(img, splitted);
 
             Laplacian(gray, contrast, CV_32F);
+#ifdef HAVE_EIGEN
+            Eigen::Map<Eigen::Array<float, Eigen::Dynamic, 1> > eContrast((float*) contrast.data, size.width * size.height, 1);
+            eContrast = eContrast.abs().pow(wcon);
+#else
             contrast = abs(contrast);
+            pow(contrast, wcon, contrast);
+#endif
 
             Mat mean = Mat::zeros(size, CV_32F);
             for(int c = 0; c < channels; c++) {
@@ -194,34 +203,64 @@ public:
             }
             mean /= channels;
 
-            saturation = Mat::zeros(size, CV_32F);
-            for(int c = 0; c < channels;  c++) {
-                Mat deviation = splitted[c] - mean;
-                pow(deviation, 2.0f, deviation);
-                saturation += deviation;
-            }
-            sqrt(saturation, saturation);
-
             wellexp = Mat::ones(size, CV_32F);
+#ifdef HAVE_EIGEN
+                Eigen::Map<Eigen::Array<float, Eigen::Dynamic, 1> > eWellexp((float*) wellexp.data, size.width * size.height, 1);
+#endif
             for(int c = 0; c < channels; c++) {
+#ifdef HAVE_EIGEN
+                Eigen::Map<const Eigen::Array<float, Eigen::Dynamic, 1> > eSplitted((float*) splitted[c].data, size.width * size.height, 1);
+                eWellexp *= -(eSplitted - 0.5f).square() / 0.08f;
+#else
                 Mat expo = splitted[c] - 0.5f;
                 pow(expo, 2.0f, expo);
                 expo = -expo / 0.08f;
-                exp(expo, expo);
+                // exp(expo, expo);
                 wellexp = wellexp.mul(expo);
+#endif
             }
-
-            pow(contrast, wcon, contrast);
-            pow(saturation, wsat, saturation);
-            pow(wellexp, wexp, wellexp);
+#ifdef HAVE_EIGEN
+            eWellexp = (eWellexp * wexp).exp();
+#else
+            wellexp = wellexp.mul(wexp);
+            exp(wellexp, wellexp);
+#endif        
 
             weights[i] = contrast;
+#ifdef HAVE_EIGEN
+            Eigen::Map<Eigen::Array<float, Eigen::Dynamic, 1> > eWeightsI((float*) weights[i].data, size.width * size.height, 1);
+#endif
+
             if(channels == 3) {
+                saturation = Mat::zeros(size, CV_32F);
+#ifdef HAVE_EIGEN
+                Eigen::Map<Eigen::Array<float, Eigen::Dynamic, 1> > eSaturation((float*) saturation.data, size.width * size.height, 1);
+                Eigen::Map<const Eigen::Array<float, Eigen::Dynamic, 1> > eMean((float*) mean.data, size.width * size.height, 1);
+#endif
+                for(int c = 0; c < channels;  c++) {
+#ifdef HAVE_EIGEN
+                    Eigen::Map<const Eigen::Array<float, Eigen::Dynamic, 1> > eSplitted((float*) splitted[c].data, size.width * size.height, 1);
+                    eSaturation += (eSaturation - eMean).square();
+#else
+                    Mat deviation = splitted[c] - mean;
+                    pow(deviation, 2.0f, deviation);
+                    saturation += deviation;
+#endif
+                }
+                pow(saturation, 0.5 * wsat, saturation);
                 weights[i] = weights[i].mul(saturation);
             }
+#ifdef HAVE_EIGEN
+            eWeightsI = (eWeightsI * eWellexp) + 1e-12f;
+#else
             weights[i] = weights[i].mul(wellexp) + 1e-12f;
+#endif
             weight_sum += weights[i];
         }
+
+        printf("weight time: %g\n", ((double)getTickCount() - t)*1000./tf);
+        t = (double)getTickCount();
+
         int maxlevel = static_cast<int>(logf(static_cast<float>(min(size.width, size.height))) / logf(2.0f));
         std::vector<Mat> res_pyr(maxlevel + 1);
 
@@ -253,11 +292,19 @@ public:
                 }
             }
         }
+
+        printf("mid time: %g\n", ((double)getTickCount() - t)*1000./tf);
+        t = (double)getTickCount();
+
         for(int lvl = maxlevel; lvl > 0; lvl--) {
             Mat up;
             pyrUp(res_pyr[lvl], up, res_pyr[lvl - 1].size());
             res_pyr[lvl - 1] += up;
         }
+
+        printf("end time: %g\n", ((double)getTickCount() - t)*1000./tf);
+        t = (double)getTickCount();
+
         dst.create(size, CV_32FCC);
         res_pyr[0].copyTo(dst.getMat());
     }
