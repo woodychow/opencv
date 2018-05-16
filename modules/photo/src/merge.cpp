@@ -224,7 +224,7 @@ public:
 #else
             wellexp = wellexp.mul(wexp);
             exp(wellexp, wellexp);
-#endif        
+#endif
 
             weights[i] = contrast;
 #ifdef HAVE_EIGEN
@@ -278,7 +278,21 @@ public:
                 pyrUp(img_pyr[lvl + 1], up, img_pyr[lvl].size());
                 img_pyr[lvl] -= up;
             }
+
             for(int lvl = 0; lvl <= maxlevel; lvl++) {
+#ifdef HAVE_EIGEN
+                Size levelSize = img_pyr[lvl].size();
+                size_t nPixels = levelSize.width * levelSize.height;
+                Eigen::Map<Eigen::Array<float, 3, Eigen::Dynamic> > ePyrImg((float*) img_pyr[lvl].data, 3, nPixels);
+                Eigen::Map<const Eigen::Array<float, 1, Eigen::Dynamic> > ePyrWeight((float*) weight_pyr[lvl].data, 1, nPixels);
+                if(res_pyr[lvl].empty()) {
+                    ePyrImg.rowwise() *= ePyrWeight;
+                    res_pyr[lvl] = img_pyr[lvl];
+                } else {
+                    Eigen::Map<Eigen::Array<float, 3, Eigen::Dynamic> > ePyrRes((float*) res_pyr[lvl].data, 3, nPixels);
+                    ePyrRes += (ePyrImg.rowwise() * ePyrWeight);
+                }
+#else
                 std::vector<Mat> splitted(channels);
                 split(img_pyr[lvl], splitted);
                 for(int c = 0; c < channels; c++) {
@@ -290,6 +304,8 @@ public:
                 } else {
                     res_pyr[lvl] += img_pyr[lvl];
                 }
+
+#endif
             }
         }
 
